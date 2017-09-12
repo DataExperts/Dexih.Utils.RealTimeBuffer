@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dexih.Utils.RealTimeBuffer", "src\Dexih.Utils.RealTimeBuffer\Dexih.Utils.RealTimeBuffer.csproj", "{8D65E5C9-735D-4808-B4CE-C87AED9CFA82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dexih.Utils.RealTimeBuffer.Tests", "test\Dexih.Utils.RealTimeBuffer.Tests\Dexih.Utils.RealTimeBuffer.Tests.csproj", "{3B750863-508D-4466-AF24-99397BAC9127}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8D65E5C9-735D-4808-B4CE-C87AED9CFA82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D65E5C9-735D-4808-B4CE-C87AED9CFA82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D65E5C9-735D-4808-B4CE-C87AED9CFA82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D65E5C9-735D-4808-B4CE-C87AED9CFA82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B750863-508D-4466-AF24-99397BAC9127}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B750863-508D-4466-AF24-99397BAC9127}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B750863-508D-4466-AF24-99397BAC9127}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B750863-508D-4466-AF24-99397BAC9127}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2B276055-D6F0-4578-9AD9-C1D53440FBB7}
+	EndGlobalSection
+EndGlobal
