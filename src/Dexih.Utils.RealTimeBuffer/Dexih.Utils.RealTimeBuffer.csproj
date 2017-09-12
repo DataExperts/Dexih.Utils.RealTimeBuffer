@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.3</TargetFramework>
+    <Authors>Gary Holland</Authors>
+    <Company>Data Experts Group</Company>
+    <Description>Facilitiates an asynchronous push/pull buffer that can be shared between two disconnected processes.</Description>
+    <PackageProjectUrl>https://github.com/DataExperts/Dexih.Utils.RealTimeBuffer</PackageProjectUrl>
   </PropertyGroup>
 
 </Project>
