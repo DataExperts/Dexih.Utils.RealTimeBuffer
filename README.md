@@ -23,38 +23,39 @@ Add the latest version of the package "Dexih.Utils.RealTimeBuffer" to a .net cor
 
 ### Usage
 
-It is recommended that a single thread performs the `push` and another single thread performance the `pop` operation.  The library is thread safe in this scenario.  The library is NOT thread safe, when multiple threads perform `push` or `pull` simultaneously.
+It is recommended that a single thread performs the `push` and another single thread performs the `pop` operation.  The library is thread safe in this scenario.  
 
-Add the following name space.
+The library is NOT thread safe, when multiple threads perform `push` or `pull` simultaneously, and this will have unexpected results.
+
+To get started, add the following name space.
 ```csharp
 using Dexih.Utils.RealTimeBuffer;
 ```
 
-Create a new shared buffer that can store 10 items simultaneously and has a push/pull timeout of 5000ms.
+To create a new shared buffer that can store 10 items simultaneously and has a push/pull timeout of 5000ms.
 
 ```csharp
 var buffer = new RealTimeBuffer<string>(10, 5000);
 ```
 
-Create a new shared buffer that can store 10 items simultaneously and has a push/pull timeout of 5000ms.
-
-Push some data to the buffer.  If the buffer is full, the `await` will pause, until an item is removed from the buffer, or a timeout or cancel occurs.
+To push some data to the buffer.  Note, if the buffer is full, the `await` will pause the push thread, until an item is popped from the buffer, or a timeout / cancel occurs.
 ```csharp
 var data = "my data...";
 await buffer.push(data, CancellationToken.None);
 ```
 
-Push some data to the buffer.  If the buffer is full, the `await` will pause, until an item is removed from the buffer, or a timeout or cancel occurs.
+To push some data to the buffer.  Note, if the buffer is full, the `await` will pause, until an item is removed from the buffer, or a timeout / cancel occurs.
 ```csharp
 var data = "my data...";
 await buffer.push(data);
 ```
 
-Get some data from buffer.  If the buffer is empty, the `await` will pause, until an item is removed from the buffer, or a timeout or cancel occurs.
-The pop returns structure, and the popped value can be accessed through the `Package` property.
+To get data from buffer.  If the buffer is empty, the `await` will pause, until an item is removed from the buffer, or a timeout or cancel occurs.
+The pop returns structure containing the value (Package propety) and the status (Status property.
 ```csharp
 var recieved = await buffer.pop();
-var value = recieved.Package; 
+var data = recieved.Package; 
+var status = received.Status;
 ```
 
 To mark the `push` process complete, include a `true` flag in the `isFinal` parameter.
