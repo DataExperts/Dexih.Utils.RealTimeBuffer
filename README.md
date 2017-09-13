@@ -14,12 +14,14 @@ The realtime buffer is a push/pop buffer that allows one thread to push data to 
 This buffer is useful in scenarious such as a file uploads and database downloads where resource and memory management is important.
 
 ---
+
 ### Installation
 
 Add the latest version of the package "Dexih.Utils.RealTimeBuffer" to a .net core/.net project.
 
 ---
-###Usage
+
+### Usage
 
 It is recommended that a single thread performs the `push` and another single thread performance the `pop` operation.  The library is thread safe in this scenario.  The library is NOT thread safe, when multiple threads perform `push` or `pull` simultaneously.
 
