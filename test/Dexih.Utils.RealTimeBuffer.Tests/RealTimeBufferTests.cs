@@ -1,12 +1,21 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Dexih.Utils.RealTimeBuffer.Tests
 {
     public class RealTimeBufferTests
     {
+        private readonly ITestOutputHelper output;
+
+        public RealTimeBufferTests(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
         [Fact]
         public async Task Test_QueuePushPop()
         {
@@ -124,6 +133,50 @@ namespace Dexih.Utils.RealTimeBuffer.Tests
             cancelToken.Cancel();
 
             Assert.True(pushTask.Exception.InnerException is RealTimeBufferCancelledException);
+        }
+
+        [Theory]
+        [InlineData(10000, 5000)]
+        [InlineData(10000, 2)]
+        [InlineData(10000, 5000)]
+        [InlineData(10000, 10000)]
+        [InlineData(10000, 20000)]
+        public async Task Test_QueuePerformance(int rows, int bufferSize)
+        {
+            Stopwatch timer = Stopwatch.StartNew();
+
+            var queue = new RealTimeBuffer<int>(bufferSize, 5000);
+
+            var pushTask = Task.Run(async () =>
+            {
+                for (int i = 0; i < rows; i++)
+                {
+                    await queue.Push(i);
+                }
+                await queue.Push(0, true);
+            });
+
+            var popCount = 0;
+            var popTask = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    var package = await queue.Pop();
+                    if(package.Status == ERealTimeBufferStatus.NotComplete)
+                    {
+                        popCount++;
+                        continue;
+                    }
+                    break;
+                }
+            });
+
+            await Task.WhenAll(pushTask, popTask);
+
+            Assert.Equal(rows, popCount);
+
+            timer.Stop();;
+            output.WriteLine("Time taken: " + timer.Elapsed);
         }
     }
 }

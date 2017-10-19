@@ -11,11 +11,19 @@ namespace Dexih.Utils.RealTimeBuffer
     /// <para/> This class allows data to be sent from disonnected objects via a data buffer, through a push/pull mechanism.
     /// </summary>
 	public class RealTimeBuffer<T>
-	{
-		private readonly ConcurrentQueue<T> _realtimeQueue;
+    {
+        private readonly T[] _realtimeQueue;
+        private int _pushPosition;
+        private int _popPosition;
+
+        private bool _bufferFull;
+        private bool _bufferEmpty;
+
+        private bool _bufferLock;
 
         private readonly AutoResetEventAsync _popEvent = new AutoResetEventAsync();
         private readonly AutoResetEventAsync _pushEvent = new AutoResetEventAsync();
+
 
         /// <summary>
         /// The timeout (in milliseconds) when waiting for a new buffer to arrive.
@@ -63,15 +71,18 @@ namespace Dexih.Utils.RealTimeBuffer
 
         public RealTimeBuffer(int maxBufferCount)
 		{
-			_realtimeQueue = new ConcurrentQueue<T>();
+            _realtimeQueue = new T[maxBufferCount];
             MaxBufferCount = maxBufferCount;
 		}
 
         public RealTimeBuffer(int maxBufferCount, int defaultTimeOutMilliseconds)
         {
-            _realtimeQueue = new ConcurrentQueue<T>();
+            _realtimeQueue = new T[maxBufferCount];
             MaxBufferCount = maxBufferCount;
             DefaulttimeOutMilliseconds = defaultTimeOutMilliseconds;
+            _bufferFull = false;
+            _bufferEmpty = true;
+            _bufferLock = false;
         }
 
         /// <summary>
@@ -135,8 +146,8 @@ namespace Dexih.Utils.RealTimeBuffer
                     throw new RealTimeBufferFinishedException("The push operation was attempted after the queue was marked as finished.");
                 }
 
-                // if the buffer is full, wait until something is popped
-                while (_realtimeQueue.Count >= MaxBufferCount)
+                // if the buffer is full (when next popPosition, is the pushPosition), wait until something is popped
+                while (_bufferFull)
                 {
                     if(_awaitingPush)
                     {
@@ -163,9 +174,25 @@ namespace Dexih.Utils.RealTimeBuffer
                     }
                 }
 
-                _realtimeQueue.Enqueue(buffer);
+                if (_bufferLock)
+                {
+                    await _popEvent.WaitAsync();
+                }
+
+                _bufferLock = true;
+
+                _realtimeQueue[_pushPosition] = buffer;
+                _pushPosition = ((_pushPosition + 1) % MaxBufferCount);
+
+                _bufferEmpty = false;
+                if (_pushPosition == _popPosition)
+                {
+                    _bufferFull = true;
+                }
+
                 IsFinished = isFinalBuffer;
 
+                _bufferLock = false;
                 _pushEvent.Set();
             }
             catch (Exception ex)
@@ -202,7 +229,7 @@ namespace Dexih.Utils.RealTimeBuffer
         /// Retrieve a buffer from the queue.  If the buffer queue is empty, this will wait until a new buffer is available, or a timeout of <see cref="DefaulttimeOutMilliseconds"/> has occurred.
         /// </summary>
         /// <returns></returns>
-        public Task<RealTimeBufferPackage<T>> Pop()
+        public Task<(ERealTimeBufferStatus Status, T Package)> Pop()
         {
             return Pop(CancellationToken.None, DefaulttimeOutMilliseconds);
         }
@@ -212,7 +239,7 @@ namespace Dexih.Utils.RealTimeBuffer
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public Task<RealTimeBufferPackage<T>> Pop(CancellationToken cancellationToken)
+        public Task<(ERealTimeBufferStatus Status, T Package)> Pop(CancellationToken cancellationToken)
         {
             return Pop(cancellationToken, DefaulttimeOutMilliseconds);
         }
@@ -223,15 +250,15 @@ namespace Dexih.Utils.RealTimeBuffer
         /// <param name="cancellationToken"></param>
         /// <param name="timeOutMilliseconds"></param>
         /// <returns></returns>
-        public async Task<RealTimeBufferPackage<T>> Pop(CancellationToken cancellationToken, int timeOutMilliseconds)
+        public async Task<(ERealTimeBufferStatus Status, T Package)> Pop(CancellationToken cancellationToken, int timeOutMilliseconds)
         {
             try
             {
-                while (_realtimeQueue.Count == 0)
+                while (_bufferEmpty)
                 {
                     if (IsFinished)
                     {
-                        return new RealTimeBufferPackage<T>(ERealTimeBufferStatus.Complete);
+                        return (ERealTimeBufferStatus.Complete, default(T));
                     }
 
                     var pushEvent = _pushEvent.WaitAsync();
@@ -247,7 +274,7 @@ namespace Dexih.Utils.RealTimeBuffer
 
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        return new RealTimeBufferPackage<T>(ERealTimeBufferStatus.Cancalled);
+                        return (ERealTimeBufferStatus.Cancalled, default(T));
                     }
 
                     if (completedTask == timeoutEvent)
@@ -256,31 +283,34 @@ namespace Dexih.Utils.RealTimeBuffer
                     }
                 }
 
-                while (true)
+                if(_bufferLock)
                 {
-                    if (IsFailed)
-                    {
-                        throw Exception;
-                    }
-
-                    var canDequeue = _realtimeQueue.TryDequeue(out T result);
-                    if (canDequeue)
-                    {
-                        ERealTimeBufferStatus status;
-                        if (IsFinished && _realtimeQueue.Count == 0)
-                        {
-                            status = ERealTimeBufferStatus.Complete;
-                        }
-                        else
-                        {
-                            status = ERealTimeBufferStatus.NotComplete;
-                        }
-                        var package = new RealTimeBufferPackage<T>(result, status);
-                        _popEvent.Set();
-                        return package;
-                    }
-                    await Task.Delay(100, cancellationToken);
+                    await _pushEvent.WaitAsync();                
                 }
+
+                _bufferLock = true;
+                var newPopPosition = (_popPosition + 1) % MaxBufferCount;
+                _bufferFull = false;
+                if (newPopPosition == _pushPosition)
+                {
+                    _bufferEmpty = true;
+                }
+
+                ERealTimeBufferStatus status;
+                if (IsFinished && _bufferEmpty)
+                {
+                    status = ERealTimeBufferStatus.Complete;
+                }
+                else
+                {
+                    status = ERealTimeBufferStatus.NotComplete;
+                }
+                var package = (status, _realtimeQueue[_popPosition]);
+                _popPosition = newPopPosition;
+
+                _bufferLock = false;
+                _popEvent.Set();
+                return package;
             } catch(Exception ex)
             when (!(ex is RealTimeBufferCancelledException || ex is RealTimeBufferFinishedException || ex is RealTimeBufferTimeOutException))
             {

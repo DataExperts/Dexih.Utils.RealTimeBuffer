@@ -8,4 +8,7 @@
     <PackageProjectUrl>https://github.com/DataExperts/Dexih.Utils.RealTimeBuffer</PackageProjectUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
+  </ItemGroup>
 </Project>
